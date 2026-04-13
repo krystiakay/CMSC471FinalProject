@@ -1,0 +1,8 @@
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: {}
+  Agent:
+    Type: AWS::Bedrock::Agent
+    Properties:
+      AgentName: <String>
