@@ -8,3 +8,11 @@ use_container = true
 
 [default.global.parameters]
 region = "us-east-1"
+
+[default.deploy.parameters]
+stack_name = "cmsc471-hello-stack"
+resolve_s3 = true
+s3_prefix = "cmsc471-hello-stack"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
