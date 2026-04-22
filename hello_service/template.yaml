@@ -46,3 +46,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       LogGroupName: !Sub /aws/lambda/${HelloWorldFunction}
+Outputs:
+  HelloWorldApi:
+    Description: 'API Gateway endpoing URL for Prod: '
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/
