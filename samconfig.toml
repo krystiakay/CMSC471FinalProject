@@ -16,3 +16,4 @@ s3_prefix = "cmsc471-hello-stack"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
+parameter_overrides = "LabRoleArn=\"arn:aws:iam::040337611754:role/LabRole\""

@@ -1,10 +1,12 @@
 #yaml file
 Transform: AWS::Serverless-2016-10-31
+
 Parameters:
   LabRoleArn:
     Type: String
     Description: The ARN of the LabRole AWS Learner Lab.
-    Default: arn:aws:iam::040337611754:role/LabRole
+    Default: arn:aws:iam::595026604313:role/LabRole
+    
 Resources:
   Api:
     Type: AWS::Serverless::Api
@@ -30,8 +32,8 @@ Resources:
       Tracing: Active
   HelloWorldFunctionLogGroup:
     Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${HelloWorldFunction}
       RetentionInDays: 7
@@ -97,7 +99,18 @@ Resources:
       RetentionInDays: 7
 Outputs:
   HelloWorldApi:
-    Description: 'API Gateway endpoint URL for Prod:'
+    Description: 'API Gateway endpoing URL for Prod:'
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/
   FrontendBucketName:
+    Description: S3 Bucket name holding our index.html
     Value: !Ref Bucket
+  FrontendDeployCommand:
+    Description: Run this command to deploy index.html to s3 bucket
+    Value: !Sub 'aws s3 cp .\wwwroot\index.html s3://${Bucket}/index.html'
+  FrontendTeardownCommand:
+    Description: Run this command to remove index.html from s3 bucket
+    Value: !Sub aws s3 rm s3://${Bucket}/index.html
+  RemoveStackCommand:
+    Description: Run this command to remove this stack
+    Value: !Sub aws cloudformation delete-stack --stack-name ${AWS::StackName}
+      --region us-east-1
