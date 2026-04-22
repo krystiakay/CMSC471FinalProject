@@ -4,7 +4,7 @@ version = 0.1
 template_file = "c:\\Users\\Tia\\CMSC471FinalProject\\template.yaml"
 cached = true
 parallel = true
-use_container = true
+use_container = false
 
 [default.global.parameters]
 region = "us-east-1"
