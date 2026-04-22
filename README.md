@@ -1,4 +1,4 @@
-```{mermaid}
+```mermaid
 graph TD
     User[User browser] --> APIG[API Gateway\nPublic Entry Point]
 
