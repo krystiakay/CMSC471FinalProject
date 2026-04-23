@@ -1,158 +1,364 @@
 <!DOCTYPE html>
 
-<html class="light" lang="en"><head>
+<html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>THE DINER | Hello World</title>
+<title>YELLOW SIGN DINER | INDUSTRIAL TERMINAL</title>
+<!-- React and Babel for single-file implementation -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <!-- Fonts -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&amp;family=Work+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
-<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&amp;family=Epilogue:wght@300;400;500;600&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "on-error": "#ffffff",
-                    "inverse-primary": "#dac900",
-                    "primary-container": "#ffeb00",
-                    "on-secondary-container": "#fffbff",
-                    "secondary-fixed": "#ffdad4",
-                    "primary-fixed-dim": "#dac900",
-                    "on-tertiary-fixed": "#1b1b1b",
-                    "surface-bright": "#fcf9f8",
-                    "on-primary-container": "#736900",
-                    "tertiary": "#5e5e5e",
-                    "tertiary-fixed": "#e2e2e2",
-                    "on-tertiary": "#ffffff",
-                    "primary-fixed": "#f9e500",
-                    "surface-dim": "#dcd9d9",
-                    "surface-variant": "#e5e2e1",
-                    "on-surface": "#1c1b1b",
-                    "surface-container-high": "#ebe7e7",
-                    "surface-tint": "#686000",
-                    "background": "#fcf9f8",
-                    "outline": "#7c785f",
-                    "primary": "#686000",
-                    "surface-container-low": "#f6f3f2",
-                    "tertiary-container": "#e8e8e8",
-                    "inverse-on-surface": "#f3f0ef",
-                    "on-tertiary-fixed-variant": "#474747",
-                    "secondary": "#bc0001",
-                    "surface-container-lowest": "#ffffff",
-                    "on-surface-variant": "#4a4731",
-                    "on-tertiary-container": "#686868",
-                    "on-secondary-fixed": "#410000",
-                    "secondary-container": "#eb0002",
-                    "on-primary": "#ffffff",
-                    "on-primary-fixed": "#1f1c00",
-                    "tertiary-fixed-dim": "#c6c6c6",
-                    "on-secondary": "#ffffff",
-                    "error": "#ba1a1a",
-                    "on-background": "#1c1b1b",
-                    "on-error-container": "#93000a",
-                    "on-primary-fixed-variant": "#4f4800",
-                    "error-container": "#ffdad6",
-                    "surface": "#fcf9f8",
-                    "surface-container-highest": "#e5e2e1",
-                    "inverse-surface": "#313030",
-                    "surface-container": "#f0edec",
-                    "outline-variant": "#cdc7aa",
-                    "secondary-fixed-dim": "#ffb4a8",
-                    "on-secondary-fixed-variant": "#930000"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0px",
-                    "lg": "0px",
-                    "xl": "0px",
-                    "full": "0px"
-            },
-            "fontFamily": {
-                    "headline": ["Space Grotesk", "sans-serif"],
-                    "body": ["Work Sans", "sans-serif"],
-                    "label": ["Work Sans", "sans-serif"]
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            "use strict";
+            //id="inbox-list"
+            //id="process-btn"
+            //id="records-table"
+            //id="log-area"
+            //id="upload-btn"
+
+            //This is where the API Gateway address
+            const API = "https://??"
+            
+            // --Inbox API calls
+            // Three functions, GET, POST, and DELETE to /api/inbox
+            // Fx to fetch list of images from S3 via Lambda
+            async function loadInbox(){
+                const res = await fetch(`${API}/api/inbox`);
+                const files = await res.json();
+                renderInbox(files);
             }
-          },
-        },
-      }
+
+            async function uploadFile(file){
+                const form = new FormData();
+                form.append('file', file);
+                await fetch(`${API}/api/inbox`, {
+                    method: 'POST',
+                    body: form
+                });
+                loadInbox();
+            }
+
+            async function deleteFile(filename){
+                await fetch(`${API}/api/inbox?filename=${encodeURIComponent(filename)}`, {
+                    method: 'DELETE'
+                });
+                loadInbox();
+            }
+
+            function renderInbox(files){
+                const list = document.querySelector('#inbox-list tbody');
+                tbody.innerHTML = '';
+                
+                files.forEach(filename =>{
+                    const tr = document.createElement('tr');
+                    tr.className = 'group cursor-pointer b-[#3d3d3d] hover:bg-[#ffd700]/10 transition-colors rounded-xl';
+
+                    tr.innerHTML = `
+                        <td class="py-4 px-4 font-bold text-sm">${filename}</td>
+                        <td class="py-4 px-4 text-right">"
+                        <button onclick=deleteFile('${filename}') class="text-red-500 hover:text-red-700 transition-colors">
+                            close
+                        </button>
+                        </td>`;
+                        tbody.appendChild(tr);        
+                })
+            }
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.style.display='none';
+            document.body.appendChild(fileInput);
+
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files[0]){
+                    uploadFile(fileInput.files[0]);
+                }
+            });
+
+            document.getElementById('process-btn').addEventListener('click', () => {
+                const log = document.getElementById('log-area');
+                const p = document.createElement('p');
+                p.className = 'text-[#ffd700] mt-1';
+                p.textContent = `[${new Date().toLocaleTimeString()}]`;
+                log.appendChild(p);
+                log.scrollTop = log.scrollHeight;
+
+             });
+            loadInbox();
+
+            return (
+                <div className="app-container">
+                    <header className="main-header">
+                        <div className="header-left">
+                            <span className="material-symbols-outlined">terminal</span>
+                            <h1 className="logo-text">YELLOW SIGN DINER</h1>
+                        </div>
+                        <div className="header-right">
+                            <span className="material-symbols-outlined">account_circle</span>
+                        </div>
+                    </header>
+
+                    <main className="terminal-grid">
+                        {/* Inbox Panel */}
+                        <section className="panel">
+                            <div className="panel-header">
+                                <h2 className="panel-title">INBOX</h2>
+                            </div>
+                            <div className="panel-content scrollable">
+                                <table className="data-table" id="inbox-list">
+                                    <thead>
+                                        <tr>
+                                            <th>FILENAME</th>
+                                            <th className="text-right">ACTION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {inboxItems.map(item => (
+                                            <tr key={item.id}>
+                                                <td>{item.name}</td>
+                                                <td className="text-right">
+                                                    <button className="icon-btn" onClick={() => deleteInboxItem(item.id)}>
+                                                        <span className="material-symbols-outlined">close</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="panel-footer">
+                                <button className="primary-btn" id="upload-btn" onClick={handleUpload}>
+                                    <span className="material-symbols-outlined">upload_file</span>
+                                    UPLOAD FILE
+                                </button>
+                            </div>
+                        </section>
+
+                        {/* Process Panel */}
+                        <section className="panel border-x">
+                            <div className="panel-header">
+                                <h2 className="panel-title">PROCESS</h2>
+                            </div>
+                            <div className="panel-content">
+                                <div className="button-container">
+                                    <button className="outline-btn" id="process-btn" onClick={handleProcess}>
+                                        EXECUTE_RENDER_PROCESS
+                                    </button>
+                                </div>
+                                <div className="console-wrapper">
+                                    <div className="console-header">TERMINAL_OUTPUT_V4.1</div>
+                                    <div className="console-body scrollable" id="log-area">
+                                        {logs.map(log => (
+                                            <p key={log.id} className="log-line">
+                                                <span className="yellow-text">[{log.time}]</span> {log.msg}
+                                            </p>
+                                        ))}
+                                        <p className="cursor">_</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Records Panel */}
+                        <section className="panel">
+                            <div className="panel-header">
+                                <h2 className="panel-title">RECORDS</h2>
+                            </div>
+                            <div className="panel-content scrollable">
+                                <table className="data-table" id="records-table">
+                                    <thead>
+                                        <tr>
+                                            <th>FILENAME</th>
+                                            <th>STATUS</th>
+                                            <th className="text-right">TIME</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {records.map(record => (
+                                            <tr key={record.id}>
+                                                <td>{record.filename}</td>
+                                                <td>
+                                                    <span className={`badge ${record.status === 'FAIL' ? 'badge-error' : 'badge-success'}`}>
+                                                        {record.status}
+                                                    </span>
+                                                </td>
+                                                <td className="text-right dim-text">{record.time}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="panel-footer footer-actions">
+                                <div className="row">
+                                    <button className="secondary-btn" onClick={handleLoadRecords}>LOAD RECORDS</button>
+                                    <button className="secondary-btn" onClick={handleClearRecords}>CLEAR</button>
+                                </div>
+                                <button className="danger-btn" onClick={handleDeleteAllRecords}>DELETE ALL RECORDS</button>
+                            </div>
+                        </section>
+                    </main>
+
+                    <footer className="main-footer">
+                        <div className="footer-left">
+                            <div className="pulse-dot"></div>
+                            <span>YELLOW SIGN INDUSTRIAL ©2024</span>
+                        </div>
+                        <div className="footer-right">
+                            SYSTEM_STATUS: <span className="yellow-text">OPTIMAL</span>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        /* BASE STYLES */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: #131313; 
+            color: #FFFDD0; 
+            font-family: 'Epilogue', sans-serif;
+            height: 100vh;
+            overflow: hidden;
         }
-        body { font-family: 'Work Sans', sans-serif; }
-        h1, h2, h3, .diner-title { font-family: 'Space Grotesk', sans-serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .industrial-shadow {
-            box-shadow: 8px 8px 0 0 rgba(28,27,27,1);
+
+        /* LAYOUT */
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
+        .main-header { 
+            background-color: #000; 
+            color: #FFEB00; 
+            padding: 1rem 1.5rem; 
+            border-bottom: 2px solid #FFEB00; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 1rem; }
+        .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 900; letter-spacing: 0.1em; }
+        
+        .terminal-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            flex: 1; 
+            overflow: hidden; 
+            background-color: #000;
+        }
+        
+        .panel { 
+            background-color: #2d2d2d; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            min-width: 0;
+        }
+        .border-x { 
+            border-left: 1px solid rgba(255, 253, 208, 0.2); 
+            border-right: 1px solid rgba(255, 253, 208, 0.2); 
+        }
+
+        /* PANEL COMPONENTS */
+        .panel-header { 
+            padding: 1rem; 
+            border-bottom: 1px solid rgba(255, 253, 208, 0.2); 
+            background-color: #1a1a1a;
+        }
+        .panel-title { 
+            font-family: 'Space Grotesk', sans-serif; 
+            font-size: 0.75rem; 
+            color: #FFEB00; 
+            letter-spacing: 0.2em; 
+            text-shadow: 0 0 10px rgba(255, 235, 0, 0.3);
+        }
+        .panel-content { flex: 1; padding: 1.25rem; display: flex; flex-direction: column; min-height: 0; }
+        .panel-footer { padding: 1rem; background-color: #1a1a1a; border-top: 1px solid rgba(255, 253, 208, 0.1); }
+        .scrollable { overflow-y: auto; }
+
+        /* TABLES */
+        .data-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+        .data-table th { text-align: left; color: #FFEB00; padding: 0.5rem; border-bottom: 1px solid rgba(255, 253, 208, 0.2); font-weight: normal; }
+        .data-table td { padding: 0.75rem 0.5rem; border-bottom: 1px solid rgba(255, 253, 208, 0.1); }
+        .text-right { text-align: right; }
+        .dim-text { color: rgba(255, 253, 208, 0.5); }
+
+        /* CONSOLE */
+        .button-container { margin-bottom: 1.5rem; }
+        .console-wrapper { flex: 1; display: flex; flex-direction: column; background-color: #000; border: 1px solid rgba(255, 253, 208, 0.2); }
+        .console-header { background-color: #1a1a1a; padding: 0.4rem 0.75rem; font-size: 10px; color: rgba(255, 253, 208, 0.4); font-family: 'JetBrains Mono', monospace; }
+        .console-body { flex: 1; padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: rgba(255, 253, 208, 0.8); line-height: 1.6; }
+        .log-line { margin-bottom: 4px; }
+        .yellow-text { color: #FFEB00; }
+        .cursor { animation: blink 1s step-end infinite; color: #FFEB00; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* BUTTONS */
+        .primary-btn { 
+            width: 100%; background-color: #FFEB00; color: #000; border: none; padding: 0.9rem; 
+            font-family: 'Space Grotesk', sans-serif; font-weight: bold; letter-spacing: 0.1em; 
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; 
+        }
+        .outline-btn { 
+            width: 100%; background: transparent; color: #FFEB00; border: 2px solid #FFEB00; padding: 0.9rem;
+            font-family: 'Space Grotesk', sans-serif; font-weight: bold; letter-spacing: 0.1em; cursor: pointer;
+        }
+        .outline-btn:hover { background-color: #FFEB00; color: #000; }
+        .secondary-btn { 
+            flex: 1; background: transparent; color: #FFFDD0; border: 1px solid rgba(255, 253, 208, 0.4); 
+            padding: 0.6rem; font-size: 11px; cursor: pointer;
+        }
+        .secondary-btn:hover { border-color: #FFFDD0; }
+        .danger-btn { 
+            width: 100%; background: transparent; color: #ffb4ab; border: 1px solid #ffb4ab; 
+            padding: 0.6rem; font-size: 11px; cursor: pointer; margin-top: 0.5rem;
+        }
+        .danger-btn:hover { background-color: #ffb4ab; color: #000; }
+        .icon-btn { background: none; border: none; color: #ffb4ab; cursor: pointer; display: flex; }
+
+        /* BADGES */
+        .badge { font-size: 10px; padding: 2px 6px; border: 1px solid; }
+        .badge-success { color: #FFEB00; border-color: #FFEB00; }
+        .badge-error { color: #ffb4ab; border-color: #ffb4ab; }
+
+        /* FOOTER */
+        .main-footer { 
+            background: #000; padding: 1rem 1.5rem; border-top: 1px solid #FFFDD0; color: #FFEB00; 
+            font-family: 'Space Grotesk', sans-serif; font-size: 10px; letter-spacing: 0.1em;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .footer-left { display: flex; align-items: center; gap: 0.75rem; }
+        .pulse-dot { width: 6px; height: 6px; background: #FFEB00; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* UTILS */
+        .row { display: flex; gap: 0.5rem; }
+        .footer-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+
+        /* SCROLLBAR */
+        .scrollable::-webkit-scrollbar { width: 4px; }
+        .scrollable::-webkit-scrollbar-track { background: #1a1a1a; }
+        .scrollable::-webkit-scrollbar-thumb { background: #FFEB00; }
+
+        @media (max-width: 900px) {
+            .terminal-grid { grid-template-columns: 1fr; overflow-y: auto; }
+            .panel { min-height: 400px; border-bottom: 1px solid rgba(255, 253, 208, 0.2); }
+            body { overflow-y: auto; }
         }
     </style>
-<style>
-        body {
-            min-height: max(884px, 100dvh);
-        }
-    </style>
-</head>
-<body class="bg-surface font-body text-on-surface antialiased">
-<!-- TopAppBar -->
-<header class="fixed top-0 left-0 right-0 z-50 bg-[#FFEB00] dark:bg-[#686000] backdrop-blur-xl bg-opacity-80 border-none shadow-[0_4px_0_0_rgba(0,0,0,1)]">
-<div class="flex justify-between items-center w-full px-6 py-4 max-w-full">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-3xl text-[#1C1B1B]">blur_on</span>
-<span class="text-xl font-black italic tracking-tighter text-[#1C1B1B] font-['Space_Grotesk'] uppercase">MINIMALIST</span>
-</div>
-<button class="font-['Space_Grotesk'] font-black uppercase tracking-tighter text-sm text-[#1C1B1B] active:opacity-70 transition-opacity">
-                CONTACT
-            </button>
-</div>
-</header>
-<!-- Main Canvas -->
-<main class="relative min-h-screen w-full flex items-center justify-center p-6 bg-[#FFEB00] pt-[72px]">
-<!-- Background Decorative Element (Tonal Architecture) -->
-<div class="absolute inset-0 bg-black/5 -z-10"></div>
-<!-- The Core Card (Diner Aesthetic) -->
-<div class="w-full max-w-sm bg-white border-4 border-[#1C1B1B] industrial-shadow p-12 text-center relative overflow-hidden">
-<!-- Contextual Decorative Visual (Asymmetric Content) -->
-<div class="absolute -top-12 -right-12 w-24 h-24 bg-[#FFEB00] rotate-45 border-4 border-[#1C1B1B]"></div>
-<!-- Card Content -->
-<div class="relative z-10 flex flex-col items-center gap-8">
-<!-- Tiny Label Overline -->
-<span class="font-headline font-black text-xs uppercase tracking-[0.2em] text-[#BC0001]">
-                    GREETING
-                </span>
-<!-- Primary Headline -->
-<h1 class="text-6xl md:text-7xl font-headline font-black tracking-tighter leading-[0.85] text-[#1C1B1B] uppercase">
-                    Hello <br/>World
-                </h1>
-<!-- Sub-headline -->
-<p class="text-xl font-body font-bold text-[#1C1B1B]/70 leading-tight max-w-[240px] mx-auto uppercase">
-                    A study in atmospheric depth and spatial intent.
-                </p>
-<!-- Primary Action Button -->
-<button class="mt-4 px-10 py-5 bg-[#1C1B1B] text-[#FFEB00] font-headline font-black text-xl uppercase tracking-widest transition-all duration-300 hover:translate-x-1 hover:-translate-y-1 active:scale-95 border-4 border-[#1C1B1B] industrial-shadow">
-                    Enter the Void
-                </button>
-</div>
-<!-- Bottom Texture -->
-<div class="absolute bottom-0 left-0 w-full h-2 bg-[#BC0001]"></div>
-</div>
-</main>
-<!-- Footer -->
-<footer class="bg-[#1C1B1B] dark:bg-[#000000] py-12 px-6">
-<div class="flex flex-col items-center justify-center gap-6 max-w-7xl mx-auto text-center">
-<div class="text-[#FFEB00] font-black font-headline text-2xl tracking-tighter uppercase italic">THE TACTILE VOID</div>
-<nav class="flex gap-8 font-['Work_Sans'] text-xs font-bold uppercase tracking-widest text-[#FCF9F8]/60">
-<a class="hover:text-[#FFEB00] underline decoration-2 transition-all" href="#">Privacy</a>
-<a class="hover:text-[#FFEB00] underline decoration-2 transition-all" href="#">Process</a>
-<a class="hover:text-[#FFEB00] underline decoration-2 transition-all" href="#">Terms</a>
-</nav>
-<div class="font-['Work_Sans'] text-[10px] font-bold uppercase tracking-[0.2em] text-[#FCF9F8]/40">
-                © 2024 THE TACTILE VOID. ALL RIGHTS RESERVED.
-            </div>
-</div>
-</footer>
 </body></html>
