@@ -5,8 +5,8 @@ Parameters:
   LabRoleArn:
     Type: String
     Description: The ARN of the LabRole AWS Learner Lab.
-    Default: arn:aws:iam::595026604313:role/LabRole
-    
+    Default: arn:aws:iam::040337611754:role/LabRole
+
 Resources:
   Api:
     Type: AWS::Serverless::Api
@@ -17,25 +17,33 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
-  HelloWorldFunction:
+  HealthFunction:
     Type: AWS::Serverless::Function
     Properties:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: HelloWorldFunction
-      CodeUri: hello_service
+        - ResourceName: HealthFunction
+      CodeUri: health_service
       Handler: handler.handler
       Runtime: python3.13
       Role: !Ref LabRoleArn
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
-  HelloWorldFunctionLogGroup:
+      Environment: {}
+      Events:
+        ApiGET:
+          Type: Api
+          Properties:
+            Path: /api/health
+            Method: GET
+            RestApiId: !Ref Api
+  HealthFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     UpdateReplacePolicy: Delete
     Properties:
-      LogGroupName: !Sub /aws/lambda/${HelloWorldFunction}
+      LogGroupName: !Sub /aws/lambda/${HealthFunction}
       RetentionInDays: 7
   Bucket:
     Type: AWS::S3::Bucket
@@ -92,10 +100,78 @@ Resources:
             RestApiId: !Ref Api
   StaticProxyFunctionLogGroup:
     Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub /aws/lambda/${StaticProxyFunction}
+      RetentionInDays: 7
+  InboxBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-inboxbuck-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: alias/aws/s3
+  InboxBucketBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref InboxBucket
+      PolicyDocument:
+        Id: RequireEncryptionInTransit
+        Version: '2012-10-17'
+        Statement:
+          - Principal: '*'
+            Action: '*'
+            Effect: Deny
+            Resource:
+              - !GetAtt InboxBucket.Arn
+              - !Sub ${InboxBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+  LInbox:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: LInbox
+      CodeUri: src/inbox
+      Handler: handler.handler
+      Runtime: python3.13
+      Role: !Ref LabRoleArn
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          INBOX_BUCKET_NAME: !Ref InboxBucket
+      Events:
+        ApiGETInbox:
+          Type: Api
+          Properties:
+            Path: /api/inbox
+            Method: GET
+            RestApiId: !Ref Api
+        ApiPOSTInbox:
+          Type: Api
+          Properties:
+            Path: /api/inbox
+            Method: POST
+            RestApiId: !Ref Api
+        ApiDELETEInbox:
+          Type: Api
+          Properties:
+            Path: /api/inbox/{key}
+            Method: DELETE
+            RestApiId: !Ref Api
+  LInboxLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LInbox}
       RetentionInDays: 7
 Outputs:
   HelloWorldApi:
@@ -106,7 +182,7 @@ Outputs:
     Value: !Ref Bucket
   FrontendDeployCommand:
     Description: Run this command to deploy index.html to s3 bucket
-    Value: !Sub 'aws s3 cp .\wwwroot\index.html s3://${Bucket}/index.html'
+    Value: !Sub aws s3 cp .\wwwroot\index.html s3://${Bucket}/index.html
   FrontendTeardownCommand:
     Description: Run this command to remove index.html from s3 bucket
     Value: !Sub aws s3 rm s3://${Bucket}/index.html

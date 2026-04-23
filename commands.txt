@@ -1,0 +1,5 @@
+delete stack --> aws cloudformation delete-stack --stack-name cmsc471-hello-stack --region us-east-1
+verify deletion of stack --> PS C:\Users\amaya\CMSC471FinalProject> aws cloudformation wait stack-delete-complete --stack-name cmsc471-hello-stack --region us-east-1
+deploy webpage --> aws cloudformation describe-stacks --stack-name cmsc471-hello-stack --query "Stacks[0].Outputs[?OutputKey=='HelloWorldApi'].OutputValue" --output text --region "us-east-1"
+copy webpage to bucket --> aws s3 cp .\wwwroot\index.html s3://cmsc471-hello-stack-bucket-040337611754/index.html
+remove webpage from bucket --> aws s3 rm s3://cmsc471-hello-stack-bucket-040337611754/index.html  
