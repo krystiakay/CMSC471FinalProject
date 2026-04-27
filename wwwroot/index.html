@@ -37,23 +37,32 @@
                 renderInbox(files);
             }
 
-            async function uploadFile(file){
-                const form = new FormData();
-                form.append('file', file);
-                await fetch(`${API}/api/inbox`, {
+            // Uploads a file to S3 via Lambda, then refreshes the list
+            async function uploadFile(file) {
+                const res = await fetch('${API}/api/inbox', {
                     method: 'POST',
-                    body: form
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: file.name })
+                });
+                const data = await res.json();
+                await fetch(data.url, {
+                    method: 'PUT',
+                    header: { 'Content-Type': 'image/png' },
+                    body: file
                 });
                 loadInbox();
             }
 
+            // Deletes a single file from S3 via Lambda then refreshes the list
+            //  /api/inbox/{key}
             async function deleteFile(filename){
-                await fetch(`${API}/api/inbox?filename=${encodeURIComponent(filename)}`, {
+                await fetch(`${API}/api/inbox/${encodeURIComponent(filename)}`, {
                     method: 'DELETE'
                 });
                 loadInbox();
             }
-
+            //Instead of updating individual rows in our list, we will wipe the list and reload it every time the data changes
+            //normally you would files.map(f +> <tr>...</tr>), this is doing the same thing manually
             function renderInbox(files){
                 const list = document.querySelector('#inbox-list tbody');
                 tbody.innerHTML = '';
@@ -66,13 +75,14 @@
                         <td class="py-4 px-4 font-bold text-sm">${filename}</td>
                         <td class="py-4 px-4 text-right">"
                         <button onclick=deleteFile('${filename}') class="text-red-500 hover:text-red-700 transition-colors">
-                            close
+                            <span class="material-symbols-outlined text-lg">close</span>
                         </button>
                         </td>`;
                         tbody.appendChild(tr);        
                 })
             }
 
+            // Upload button
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
@@ -89,6 +99,7 @@
                 }
             });
 
+            // Process button for later
             document.getElementById('process-btn').addEventListener('click', () => {
                 const log = document.getElementById('log-area');
                 const p = document.createElement('p');
@@ -98,6 +109,7 @@
                 log.scrollTop = log.scrollHeight;
 
              });
+             // Init, load the inbox upon page load
             loadInbox();
 
             return (
