@@ -109,6 +109,20 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${AWS::StackName}-inboxbuck-${AWS::AccountId}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+            AllowedOrigins:
+              - '*'
+            MaxAge: 300
+            ExposedHeaders:
+              - ETag
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -182,7 +196,7 @@ Outputs:
     Value: !Ref Bucket
   FrontendDeployCommand:
     Description: Run this command to deploy index.html to s3 bucket
-    Value: !Sub aws s3 cp .\wwwroot\index.html s3://${Bucket}/index.html
+    Value: !Sub 'aws s3 cp .\wwwroot\index.html s3://${Bucket}/index.html'
   FrontendTeardownCommand:
     Description: Run this command to remove index.html from s3 bucket
     Value: !Sub aws s3 rm s3://${Bucket}/index.html

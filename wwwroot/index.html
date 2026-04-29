@@ -25,37 +25,90 @@
             //id="log-area"
             //id="upload-btn"
 
+            const [inboxItems, setInboxItems] = useState([]);
+            const [records, setRecords] = useState([]);
+            const [logs, setLogs] = useState([]);
+
             //This is where the API Gateway address
-            const API = "https://??"
+            const API = "https://xjtit9i3y6.execute-api.us-east-1.amazonaws.com/Prod"
+
+            const handleUpload = () => {
+                fileInput.click();
+            };
+
+            const handleProcess = () => {
+                const now = new Date().toLocaleTimeString();
+                setLogs(previousLogs => [
+                    ...previousLogs,
+                    { id: Date.now(), time: now, msg: "PROCESS EXECUTED" }
+                ]);
+            };
+
+            const handleLoadRecords = () => setRecords([]);
+            const handleClearRecords = () => setRecords([]);
+            const handleDeleteAllRecords = () => setRecords([]);
+
+            const deleteInboxItem = (filename) => {
+                deleteFile(filename);
+            };
             
             // --Inbox API calls
             // Three functions, GET, POST, and DELETE to /api/inbox
             // Fx to fetch list of images from S3 via Lambda
             async function loadInbox(){
+                if (API.includes('??')) {
+                    return;
+                }
                 const res = await fetch(`${API}/api/inbox`);
                 const files = await res.json();
                 renderInbox(files);
             }
 
+
+            //Uploads a file to S3 via Lambda, then refreshes the list
             async function uploadFile(file){
-                const form = new FormData();
-                form.append('file', file);
-                await fetch(`${API}/api/inbox`, {
+                if (API.includes('??')) {
+                    setInboxItems(previousItems => [
+                        ...previousItems,
+                        { id: Date.now(), name: file.name }
+                    ]);
+                    return;
+                }
+                const res = await fetch(`${API}/api/inbox`, {
                     method: 'POST',
-                    body: form
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({filename: file.name, contentType: file.type || 'application/octet-stream'})
+                });
+                const data = await res.json();
+                await fetch(data.url, {
+                    method: 'PUT',
+                    headers: {'Content-Type': file.type || 'application/octet-stream'},
+                    body: file
                 });
                 loadInbox();
             }
 
+            // Deletes a single file from S3 via Lambda then refreshes the list
             async function deleteFile(filename){
-                await fetch(`${API}/api/inbox?filename=${encodeURIComponent(filename)}`, {
+                if (API.includes('??')) {
+                    setInboxItems(previousItems => previousItems.filter(item => item.name !== filename));
+                    return;
+                }
+                await fetch(`${API}/api/inbox/${encodeURIComponent(filename)}`, {
                     method: 'DELETE'
                 });
                 loadInbox();
             }
 
+            // Instead of updating indivdual rows in our list,
+            // we will wipe the list and reload it every time the data changes
+            // Normally you would files.map(f => <tr>...</tr>)
+            // This does the same thing manually
             function renderInbox(files){
-                const list = document.querySelector('#inbox-list tbody');
+                const tbody = document.querySelector('#inbox-list tbody');
+                if (!tbody) {
+                    return;
+                }
                 tbody.innerHTML = '';
                 
                 files.forEach(filename =>{
@@ -64,40 +117,32 @@
 
                     tr.innerHTML = `
                         <td class="py-4 px-4 font-bold text-sm">${filename}</td>
-                        <td class="py-4 px-4 text-right">"
-                        <button onclick=deleteFile('${filename}') class="text-red-500 hover:text-red-700 transition-colors">
-                            close
+                        <td class="py-4 px-4 text-right">
+                        <button class="text-red-500 hover:text-red-700 transition-colors">
+                            <span class="material-symbols-outlined text-lg">close</span>
                         </button>
                         </td>`;
+                    const deleteButton = tr.querySelector('button');
+                    deleteButton.addEventListener('click', () => deleteFile(filename));
                         tbody.appendChild(tr);        
                 })
             }
-
+            
+            // Upload button
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
             fileInput.style.display='none';
             document.body.appendChild(fileInput);
 
-            document.getElementById('upload-btn').addEventListener('click', () => {
-                fileInput.click();
-            });
-
             fileInput.addEventListener('change', () => {
                 if (fileInput.files[0]){
                     uploadFile(fileInput.files[0]);
+                    fileInput.value = '';
                 }
             });
 
-            document.getElementById('process-btn').addEventListener('click', () => {
-                const log = document.getElementById('log-area');
-                const p = document.createElement('p');
-                p.className = 'text-[#ffd700] mt-1';
-                p.textContent = `[${new Date().toLocaleTimeString()}]`;
-                log.appendChild(p);
-                log.scrollTop = log.scrollHeight;
-
-             });
+            // Init, load the inbox upon page load.
             loadInbox();
 
             return (
@@ -131,7 +176,7 @@
                                             <tr key={item.id}>
                                                 <td>{item.name}</td>
                                                 <td className="text-right">
-                                                    <button className="icon-btn" onClick={() => deleteInboxItem(item.id)}>
+                                                    <button className="icon-btn" onClick={() => deleteInboxItem(item.name)}>
                                                         <span className="material-symbols-outlined">close</span>
                                                     </button>
                                                 </td>

@@ -128,6 +128,20 @@ Resources:
     Properties:
       BucketName:
         Fn::Sub: ${AWS::StackName}-inboxbuck-${AWS::AccountId}
+      CorsConfiguration:
+        CorsRules:
+        - AllowedHeaders:
+          - '*'
+          AllowedMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          AllowedOrigins:
+          - '*'
+          MaxAge: 300
+          ExposedHeaders:
+          - ETag
       BucketEncryption:
         ServerSideEncryptionConfiguration:
         - ServerSideEncryptionByDefault:

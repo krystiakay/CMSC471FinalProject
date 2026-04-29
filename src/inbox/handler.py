@@ -1,13 +1,25 @@
 import json
 import boto3
 import os
+from botocore.config import Config
 
-s3 = boto3.client('s3')
+s3 = boto3.client(
+    's3',
+    region_name ='us-east-1',
+    config=Config(signature_version='s3v4') # Force V4 signing
+    )
 BUCKET = os.environ['INBOX_BUCKET_NAME']
 
 def handler(event, context):
     method = event['httpMethod']
     headers = {'Access-Control-Allow-Origin': '*'}
+
+    def error(status_code, message):
+        return {
+            'statusCode': status_code,
+            'headers': headers,
+            'body': json.dumps({'message': message})
+        }
 
     if method == 'GET':
         response = s3.list_objects_v2(Bucket=BUCKET)
@@ -19,13 +31,22 @@ def handler(event, context):
         }
     
     if method == 'POST':
-        body = json.loads(event['body'])
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except json.JSONDecodeError:
+            return error(400, 'Request body must be valid JSON')
+
         filename = body.get('filename')
+        content_type = body.get('contentType') or 'image/png'
+
+        if not filename:
+            return error(400, 'filename is required')
+
         url = s3.generate_presigned_url(
             'put_object', 
             Params={'Bucket': BUCKET, 
-                    'Key': filename, 
-                    'ContentType': 'image/png'}, 
+                    'Key': filename,
+                    'ContentType': content_type}, 
             ExpiresIn=300)
         
         return {
@@ -35,7 +56,12 @@ def handler(event, context):
         }
     
     if method == 'DELETE':
-        key = event['pathParameters']['key']
+        path_parameters = event.get('pathParameters') or {}
+        key = path_parameters.get('key')
+
+        if not key:
+            return error(400, 'key is required')
+
         s3.delete_object(Bucket=BUCKET, Key=key)
         return{
             'statusCode': 200,
