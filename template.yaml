@@ -5,7 +5,7 @@ Parameters:
   LabRoleArn:
     Type: String
     Description: The ARN of the LabRole AWS Learner Lab.
-    Default: arn:aws:iam::040337611754:role/LabRole
+    Default: arn:aws:iam::595026604313:role/LabRole
 
 Resources:
   Api:
@@ -26,7 +26,7 @@ Resources:
       CodeUri: health_service
       Handler: handler.handler
       Runtime: python3.13
-      Role: !Ref LabRoleArn
+      Role:  !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -83,7 +83,7 @@ Resources:
       CodeUri: src/proxy
       Handler: proxy.proxy_handler
       Runtime: python3.13
-      Role: !Ref LabRoleArn
+      Role:  !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -154,7 +154,7 @@ Resources:
       CodeUri: src/inbox
       Handler: handler.handler
       Runtime: python3.13
-      Role: !Ref LabRoleArn
+      Role:  !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
