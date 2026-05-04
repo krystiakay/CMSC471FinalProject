@@ -53,13 +53,18 @@ graph TD
 
 ## User Stories
 ### Amaya's User Stories
-1. As a user, I want to be able to upload a file
-2. As a user, I want to be able to view a list of my uploaded files
-3. As a user, I want to be able to delete a file
-4. As a user, I want my files to persist
-5. As a user, I want the user interface to be clear and easy to navigate
+1. As a user, I want to be able to upload a file.
+2. As a user, I want to be able to view a list of my uploaded files.
+3. As a user, I want to be able to delete a file.
+4. As a user, I want my files to persist.
+5. As a user, I want the user interface to be clear and easy to navigate.
 
 ### Tia's User Stories
+1. As a user, I want a handwritten list to be converted to text.
+2. As a user, I want to see status updates as I interact with the application.
+3. As a user, I want to be able to clear my records.
+4. As a user, I want to be able to load my records.
+5. As a user, I want to be able to process and render my files with a button.
 
 ## Well-Architected Questions
 
