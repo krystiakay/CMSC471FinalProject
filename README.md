@@ -64,7 +64,7 @@ graph TD
 ## Well-Architected Questions
 
 ## Cost Calculator
-The estimate given by https://calculator.aws was $180 upfront and $27.99 per month, coming to $515.88 (including upfront cost) for 12 months. The services entered were Amazon API Gateway: 
+The estimate given by https://calculator.aws was $180 upfront and $30.32 per month, coming to $543.84 (including upfront cost) for 12 months. The services entered were all using the us-east-1 region, and were: Amazon API Gateway -  1 million REST API requests per month for $3.50, AWS Lambda - 8 requests per hour with 3008 MB allocated for $0.00 per month, Simple Storage Service (S3) - 5 GB and 1000 GET/PUT/etc per month for $0.12, AWS Step Functions - 1 standard workflow request per hour with 5 state transitions per workflow for $0.00 per month, Textract - 1 page with 50% text and 50% tables and queries for $0.01 per month, CloudWatch - 1 metric for $0.30 per month, DynamoDB - 1 GB of data storage size for 1 KB each item for an upfront cost of $180 and a monthly cost of $26.39. 
 
 ## Template.yaml
 ```yaml
