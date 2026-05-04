@@ -50,6 +50,13 @@ graph TD
             When the user selects the upload button
             Then the file will display in the inbox files
 ```
+``` gherkin
+   Feature: Delete Files
+       Scenario: Delete files uploaded to the website
+           Given the user has uploaded a file
+           When the user selects the "X" next to the file
+           Then the file will be removed from the inbox
+```
 
 ## User Stories
 ### Amaya's User Stories
