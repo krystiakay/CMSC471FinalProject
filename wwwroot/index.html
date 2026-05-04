@@ -179,6 +179,7 @@
 
                     if (job.status === 'SUCCEEDED' || job.status === 'FAILED'){
                         clearInterval(internal); //stop polling when done
+                        loadRecords(); //refresh the records list to show the new record
                     }
                 }, 2000);
             // Init, load the inbox upon page load.
@@ -307,10 +308,62 @@
                     </footer>
                 </div>
             );
-        }
+        })
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+
+        // GET /api/records for the shopping list
+        async function loadRecords(){
+            const res = await fetch(`${API}/api/records`);
+            const data = await res.json();
+            renderRecords(rows);
+        }
+
+        //Wipe records table and repopulate
+        function renderRecords(rows){
+            const tbody = document.querySelector('#records-table tbody');
+            tbody.innerHTML = '';
+
+                if (rows.length === 0){
+                    // Show a message when there are no records
+                    tbody.innerHTML = `
+                    <tr><td colspan="3" class="py-6 text-center text-[#b0ada6] italic text-sm">
+                        No records yet. Process an image to see results.
+                    </td></tr>`;
+                    return;
+                }
+
+                rows.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = index % 2 === 0 ? 'bg-[#333333]' : 'bg-[#2d2d2d]';
+
+                    const time = row.created_at ? row.created_at.split(' ')[1] || row.created_at : ' ';
+
+                    tr.innerHTML = `
+                        <td class="py-4 px-4 font-bold text-sm">${row.item}</td>
+                        <td class="py-4 px-2">
+                            <span class="bg-[#536200] text-[#e5ff76] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        Saved</span>
+                        </td>
+                        <td class="py-4 px-2 text-right text-[#b0ada6] tabular-nums">${time}
+                            <button onclick="deleteRecord(${row.id})"
+                                class="ml-3 text-[#b0ada6] hover:text-white hover:scale-125 transition-transform align-middle">
+                                <span class="material-symbols-outlined text-base">close</span>
+                            </button>
+                        </td>`;
+                        tbody.appendChild(tr);
+
+                    })
+            }
+        }     
+
+        async function deleteRecord(id){
+            await fetch(`${API}/api/records/${id}`, 
+            { method: 'DELETE' });
+            loadRecords();
+        }
+        loadRecords();
     </script>
 <style>
         /* BASE STYLES */
