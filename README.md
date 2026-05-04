@@ -1,13 +1,8 @@
-Tia Kay and Amaya Owens  --  Final Project CMSC 471
-
-Our project seamlessly integrates all pillars of the AWS Well Architected Framework. For the operational excellence pillar, we had a clear idea of what we were creating from the beginning. This project will take handwritten notes and convert them into a digital text version of the note. We used some services provided by AWS including IAM, CloudFormation, AWS LearnerLab, and S3. 
-
-The estimate given by https://calculator.aws was $180 upfront and $27.99 per month, coming to $515.88 (including upfront cost) for 12 months. The services entered were Amazon API Gateway: 
+# Tia Kay and Amaya Owens  --  Final Project CMSC 471
+## System Write-up
 
 
-
-
-
+## Mermaid Diagram
 ```mermaid
 graph TD
     User[User browser] --> APIG[API Gateway\nPublic Entry Point]
@@ -43,3 +38,34 @@ graph TD
     
     CW[CloudWatch] -.-> SF
 ```
+## DevOps Board
+<img width="1201" height="445" alt="Screenshot 2026-05-04 182346" src="https://github.com/user-attachments/assets/7beae023-4230-4d02-90b7-eba876957d0b" />
+<img width="1197" height="737" alt="Screenshot 2026-05-04 182406" src="https://github.com/user-attachments/assets/9cda4700-c883-41ff-8883-449c76313dc0" />
+
+## Gherkin Files
+```gherkin
+    Feature: Upload Files
+        Scenario: Upload files by browsing the device
+            Given the user has selected a file
+            When the user selects the upload button
+            Then the file will display in the inbox files
+```
+
+## User Stories
+### Amaya's User Stories
+1. As a user, I want to be able to upload a file
+2. As a user, I want to be able to view a list of my uploaded files
+3. As a user, I want to be able to delete a file
+4. As a user, I want my files to persist
+5. As a user, I want the user interface to be clear and easy to navigate
+
+
+## Well-Architected Questions
+
+## Cost Calculator
+The estimate given by https://calculator.aws was $180 upfront and $27.99 per month, coming to $515.88 (including upfront cost) for 12 months. The services entered were Amazon API Gateway: 
+
+## Template.yaml
+
+## Finished Website
+
