@@ -68,4 +68,5 @@ The estimate given by https://calculator.aws was $180 upfront and $27.99 per mon
 ## Template.yaml
 
 ## Finished Website
+<img width="1920" height="1008" alt="Owens and Kay Final Project - Deletion Working CMSC471" src="https://github.com/user-attachments/assets/7ab4b581-b557-4fcc-8ff9-6d099db30237" />
 
