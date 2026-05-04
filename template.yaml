@@ -3,7 +3,7 @@ Parameters:
   LabRoleArn:
     Type: String
     Description: The ARN of the LabRole AWS Learner Lab.
-    Default: arn:aws:iam::040337611754:role/LabRole
+    Default: arn:aws:iam::595026604313:role/LabRole
 Resources:
   Api:
     Type: AWS::Serverless::Api
@@ -240,7 +240,37 @@ Resources:
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
-      Environment: {}
+      Environment:
+        Variables:
+          INBOXBUCKET_BUCKET_NAME: !Ref InboxBucket
+          INBOXBUCKET_BUCKET_ARN: !GetAtt InboxBucket.Arn
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:GetObjectLegalHold
+                - s3:GetObjectRetention
+                - s3:GetObjectTorrent
+                - s3:GetObjectVersion
+                - s3:GetObjectVersionAcl
+                - s3:GetObjectVersionForReplication
+                - s3:GetObjectVersionTorrent
+                - s3:ListBucket
+                - s3:ListBucketMultipartUploads
+                - s3:ListBucketVersions
+                - s3:ListMultipartUploadParts
+                - s3:AbortMultipartUpload
+                - s3:DeleteObject
+                - s3:DeleteObjectVersion
+                - s3:PutObject
+                - s3:PutObjectLegalHold
+                - s3:PutObjectRetention
+                - s3:RestoreObject
+              Resource:
+                - !Sub arn:${AWS::Partition}:s3:::${InboxBucket}
+                - !Sub arn:${AWS::Partition}:s3:::${InboxBucket}/*
   L1FetchLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -261,7 +291,13 @@ Resources:
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
-      Environment: {}
+      Environment:
+        Variables:
+          JOBSTABLE_TABLE_NAME: !Ref JobsTable
+          JOBSTABLE_TABLE_ARN: !GetAtt JobsTable.Arn
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
   L2CallLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -408,6 +444,24 @@ Resources:
             Path: /api/records
             Method: GET
             RestApiId: !Ref Api
+  LRecordsLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LRecords}
+      RetentionInDays: 7
+  RecordsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
 Outputs:
   HelloWorldApi:
     Description: 'API Gateway endpoing URL for Prod:'
