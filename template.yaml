@@ -1,7 +1,9 @@
-#yaml file
 Transform: AWS::Serverless-2016-10-31
-
-
+Parameters:
+  LabRoleArn:
+    Type: String
+    Description: The ARN of the LabRole AWS Learner Lab.
+    Default: arn:aws:iam::040337611754:role/LabRole
 Resources:
   Api:
     Type: AWS::Serverless::Api
@@ -280,7 +282,7 @@ Resources:
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
-      Environment: 
+      Environment:
         Variables:
           JOB_TABLE: !Ref JobsTable
           DB_NAME: shoppinglist
@@ -338,7 +340,6 @@ Resources:
         Destinations:
           - CloudWatchLogsLogGroup:
               LogGroupArn: !GetAtt StateMachineLogGroup.Arn
-
       Tracing:
         Enabled: true
       Type: STANDARD
@@ -368,14 +369,14 @@ Resources:
       Environment:
         Variables:
           JOB_TABLE: !Ref JobsTable
-          
+
       Events:
         ApiGETPoll:
-        Type: Api
-        Properties:
-          Path: /api/jobs/{jobId}
-          Method: GET
-          RestApiId: !Ref Api
+          Type: Api
+          Properties:
+            Path: /api/jobs/{jobId}
+            Method: GET
+            RestApiId: !Ref Api
   LPollLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -425,5 +426,6 @@ Outputs:
     Value: !Sub aws s3 rm s3://${InboxBucket}/ --recursive --dryrun
   RemoveStackCommand:
     Description: Run this command to remove this stack
-    Value: !Sub aws cloudformation delete-stack --stack-name ${AWS::StackName}
+    Value: !Sub |
+      aws cloudformation delete-stack --stack-name ${AWS::StackName}
       --region us-east-1
