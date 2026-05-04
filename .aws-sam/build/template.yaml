@@ -1,9 +1,4 @@
 Transform: AWS::Serverless-2016-10-31
-Parameters:
-  LabRoleArn:
-    Type: String
-    Description: The ARN of the LabRole AWS Learner Lab.
-    Default: arn:aws:iam::040337611754:role/LabRole
 Resources:
   Api:
     Type: AWS::Serverless::Api
@@ -26,7 +21,7 @@ Resources:
       Handler: handler.handler
       Runtime: python3.13
       Role:
-        Ref: LabRoleArn
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -93,7 +88,7 @@ Resources:
       Handler: proxy.proxy_handler
       Runtime: python3.13
       Role:
-        Ref: LabRoleArn
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -178,7 +173,7 @@ Resources:
       Handler: handler.handler
       Runtime: python3.13
       Role:
-        Ref: LabRoleArn
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
@@ -218,6 +213,292 @@ Resources:
       LogGroupName:
         Fn::Sub: /aws/lambda/${LInbox}
       RetentionInDays: 7
+  lsubmit:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description:
+        Fn::Sub:
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: LSubmit
+      CodeUri: lsubmit
+      Handler: handler.handler
+      Runtime: python3.13
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          JOB_TABLE:
+            Ref: JobsTable
+          STATE_MACHINE_ARN:
+            Ref: StateMachine
+      Events:
+        SubmitAPI:
+          Type: Api
+          Properties:
+            Path: /api/jobs
+            Method: POST
+            RestApiId:
+              Ref: Api
+    Metadata:
+      SamResourceId: lsubmit
+  lsubmitLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${lsubmit}
+      RetentionInDays: 7
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: jobId
+        AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: jobId
+        KeyType: HASH
+  L1Fetch:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description:
+        Fn::Sub:
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: L1Fetch
+      CodeUri: L1Fetch
+      Handler: l1fetch.handler
+      Runtime: python3.13
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment: {}
+    Metadata:
+      SamResourceId: L1Fetch
+  L1FetchLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${L1Fetch}
+      RetentionInDays: 7
+  L2Call:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description:
+        Fn::Sub:
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: L2Call
+      CodeUri: L2Call
+      Handler: l2call.handler
+      Runtime: python3.13
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment: {}
+    Metadata:
+      SamResourceId: L2Call
+  L2CallLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${L2Call}
+      RetentionInDays: 7
+  L3Save:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description:
+        Fn::Sub:
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: L3Save
+      CodeUri: L3Save
+      Handler: l3save.handler
+      Runtime: python3.13
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          JOB_TABLE:
+            Ref: JobsTable
+          DB_NAME: shoppinglist
+          RECORDS_TABLE:
+            Ref: RecordsTable
+    Metadata:
+      SamResourceId: L3Save
+  L3SaveLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${L3Save}
+      RetentionInDays: 7
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
+      Definition:
+        Comment: Shopping list image procccessing piepline
+        StartAt: FetchImage
+        States:
+          FetchImage:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: ${L1FetchArn}
+              Payload.$: $
+            ResultSelector:
+              jobId.$: $.Payload.jobId
+              filename.$: $.Payload.filename
+              bucket.$: $.Payload.bucket
+            Next: CallTextract
+          CallTextract:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: ${L2CallArn}
+              Payload.$: $
+            ResultSelector:
+              jobId.$: $.Payload.jobId
+              filename.$: $.Payload.filename
+              bucket.$: $.Payload.bucket
+            Next: SaveResults
+          SaveResults:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: ${L3SaveArn}
+              Payload.$: $
+            ResultSelector:
+              jobId.$: $.Payload.jobId
+              rowCount.$: $.Payload.rowCount
+            End: true
+      Logging:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+        - CloudWatchLogsLogGroup:
+            LogGroupArn:
+              Fn::GetAtt:
+              - StateMachineLogGroup
+              - Arn
+      Tracing:
+        Enabled: true
+      Type: STANDARD
+      DefinitionSubstitutions:
+        L1FetchArn:
+          Fn::GetAtt:
+          - L1Fetch
+          - Arn
+        L2CallArn:
+          Fn::GetAtt:
+          - L2Call
+          - Arn
+        L3SaveArn:
+          Fn::GetAtt:
+          - L3Save
+          - Arn
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub:
+        - /aws/vendedlogs/states/${AWS::StackName}-${ResourceId}-Logs
+        - ResourceId: StateMachine
+  LPoll:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description:
+        Fn::Sub:
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: LPoll
+      CodeUri: LPoll
+      Handler: lpoll.handler
+      Runtime: python3.13
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/LabRole
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          JOB_TABLE:
+            Ref: JobsTable
+      Events:
+        ApiGETPoll:
+          Type: Api
+          Properties:
+            Path: /api/jobs/{jobId}
+            Method: GET
+            RestApiId:
+              Ref: Api
+    Metadata:
+      SamResourceId: LPoll
+  LPollLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${LPoll}
+      RetentionInDays: 7
+  RecordsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+  LRecords:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description:
+        Fn::Sub:
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: LRecords
+      CodeUri: LRecords
+      Handler: lrecords.handler
+      Runtime: python3.13
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          RECORDS_TABLE:
+            Ref: RecordsTable
+      Events:
+        ApiGETRecords:
+          Type: Api
+          Properties:
+            Path: /api/records
+            Method: GET
+            RestApiId:
+              Ref: Api
+    Metadata:
+      SamResourceId: LRecords
+  LRecordsLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${LRecords}
 Outputs:
   HelloWorldApi:
     Description: 'API Gateway endpoing URL for Prod:'
@@ -235,8 +516,13 @@ Outputs:
     Description: Run this command to remove index.html from s3 bucket
     Value:
       Fn::Sub: aws s3 rm s3://${Bucket}/index.html
+  InboxBucketTeardownCommand:
+    Description: Run this command to remove any uploads to our inbox s3 bucket
+    Value:
+      Fn::Sub: aws s3 rm s3://${InboxBucket}/ --recursive --dryrun
   RemoveStackCommand:
     Description: Run this command to remove this stack
     Value:
-      Fn::Sub: aws cloudformation delete-stack --stack-name ${AWS::StackName} --region
-        us-east-1
+      Fn::Sub: 'aws cloudformation delete-stack --stack-name ${AWS::StackName}
+
+        --region us-east-1'
