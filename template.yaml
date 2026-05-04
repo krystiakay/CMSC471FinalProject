@@ -279,7 +279,9 @@ Resources:
       MemorySize: 3008
       Timeout: 30
       Tracing: Active
-      Environment: {}
+      Environment: 
+        Variables:
+          JOB_TABLE: !Ref JobsTable
   L3SaveLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -377,6 +379,8 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LPoll}
       RetentionInDays: 7
+
+
 Outputs:
   HelloWorldApi:
     Description: 'API Gateway endpoing URL for Prod:'
