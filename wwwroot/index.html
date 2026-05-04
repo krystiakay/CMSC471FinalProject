@@ -15,184 +15,165 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         function App() {
-            "use strict";
-            //id="inbox-list"
-            //id="process-btn"
-            //id="records-table"
-            //id="log-area"
-            //id="upload-btn"
-
             const [inboxItems, setInboxItems] = useState([]);
             const [records, setRecords] = useState([]);
             const [logs, setLogs] = useState([]);
+            const [selectedFile, setSelectedFile] = useState(null);
+            const fileInputRef = useRef(null);
 
-            //This is where the API Gateway address
-            // idk bro - const API = 'https://mqqyuv5uk2.execute-api.us-east-1.amazonaws.com/Prod/';
-            // new one: https://218b8b9tlb.execute-api.us-east-1.amazonaws.com/Prod/
-            // saving old one in case this doesnt work
-            // old one: https://xjtit9i3y6.execute-api.us-east-1.amazonaws.com/Prod
-            //new new one: https://mqqyuv5uk2.execute-api.us-east-1.amazonaws.com/Prod/
             const API = window.location.origin + '/Prod';
-            console.log('API:', API);
 
-            const handleUpload = () => {
-                fileInput.click();
-            };
+            useEffect(() => {
+                loadInbox();
+                loadRecords();
+            }, []);
 
-            const handleProcess = () => {
-                const now = new Date().toLocaleTimeString();
-                setLogs(previousLogs => [
-                    ...previousLogs,
-                    { id: Date.now(), time: now, msg: "PROCESS EXECUTED" }
+            const addLog = (message) => {
+                setLogs((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now(),
+                        time: new Date().toLocaleTimeString(),
+                        msg: message,
+                    },
                 ]);
             };
 
-            const handleLoadRecords = () => setRecords([]);
-            const handleClearRecords = () => setRecords([]);
-            const handleDeleteAllRecords = () => setRecords([]);
-
-            const deleteInboxItem = (filename) => {
-                deleteFile(filename);
+            const normalizeRecords = (rows) => {
+                if (!Array.isArray(rows)) return [];
+                return rows.map((row, index) => ({
+                    id: row.id ?? index,
+                    filename: row.item ?? row.filename ?? `record-${index + 1}`,
+                    status: (row.status || 'SAVED').toString().toUpperCase(),
+                    time: row.time ?? (row.created_at ? new Date(row.created_at).toLocaleString() : ''),
+                }));
             };
-            
-            // --Inbox API calls
-            // Three functions, GET, POST, and DELETE to /api/inbox
-            // Fx to fetch list of images from S3 via Lambda
-            async function loadInbox(){
-                if (API.includes('??')) {
+
+            const loadInbox = async () => {
+                try {
+                    const res = await fetch(`${API}/api/inbox`);
+                    if (!res.ok) throw new Error(`Inbox failed: ${res.status}`);
+                    const files = await res.json();
+                    setInboxItems(Array.isArray(files) ? files.map((name, index) => ({ id: index + 1, name })) : []);
+                } catch (error) {
+                    addLog(error.message);
+                }
+            };
+
+            const uploadFile = async (file) => {
+                if (!file) return;
+                try {
+                    const createRes = await fetch(`${API}/api/inbox`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filename: file.name, contentType: file.type || 'application/octet-stream' }),
+                    });
+                    if (!createRes.ok) throw new Error(`Upload init failed: ${createRes.status}`);
+                    const data = await createRes.json();
+                    await fetch(data.url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+                        body: file,
+                    });
+                    addLog(`Uploaded ${file.name}`);
+                    await loadInbox();
+                } catch (error) {
+                    addLog(error.message);
+                }
+            };
+
+            const deleteFile = async (filename) => {
+                try {
+                    const res = await fetch(`${API}/api/inbox/${encodeURIComponent(filename)}`, {
+                        method: 'DELETE',
+                    });
+                    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+                    addLog(`Deleted ${filename}`);
+                    if (selectedFile === filename) setSelectedFile(null);
+                    await loadInbox();
+                } catch (error) {
+                    addLog(error.message);
+                }
+            };
+
+            const loadRecords = async () => {
+                try {
+                    const res = await fetch(`${API}/api/records`);
+                    if (!res.ok) throw new Error(`Records failed: ${res.status}`);
+                    const data = await res.json();
+                    setRecords(normalizeRecords(data));
+                } catch (error) {
+                    addLog(error.message);
+                }
+            };
+
+            const processSelectedFile = async () => {
+                if (!selectedFile) {
+                    addLog('No inbox item selected to process.');
                     return;
                 }
-                const res = await fetch(`${API}/api/inbox`);
-                const files = await res.json();
-                renderInbox(files);
-            }
 
+                try {
+                    const res = await fetch(`${API}/api/jobs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filename: selectedFile }),
+                    });
+                    if (!res.ok) throw new Error(`Job submit failed: ${res.status}`);
+                    const job = await res.json();
+                    const jobId = job.jobId || job.id || job.job_id;
+                    if (!jobId) throw new Error('Missing jobId from response');
 
-            //Uploads a file to S3 via Lambda, then refreshes the list
-            async function uploadFile(file){
-                if (API.includes('??')) {
-                    setInboxItems(previousItems => [
-                        ...previousItems,
-                        { id: Date.now(), name: file.name }
-                    ]);
-                    return;
+                    addLog(`Started job ${jobId}`);
+                    const intervalId = setInterval(async () => {
+                        try {
+                            const pollRes = await fetch(`${API}/api/jobs/${jobId}`);
+                            if (!pollRes.ok) throw new Error(`Job poll failed: ${pollRes.status}`);
+                            const jobStatus = await pollRes.json();
+                            addLog(jobStatus.message || `Status: ${jobStatus.status}`);
+
+                            if (jobStatus.status === 'SUCCEEDED' || jobStatus.status === 'FAILED') {
+                                clearInterval(intervalId);
+                                await loadRecords();
+                            }
+                        } catch (error) {
+                            addLog(error.message);
+                            clearInterval(intervalId);
+                        }
+                    }, 2000);
+                } catch (error) {
+                    addLog(error.message);
                 }
-                const res = await fetch(`${API}/api/inbox`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({filename: file.name, contentType: file.type || 'application/octet-stream'})
-                });
-                const data = await res.json();
-                await fetch(data.url, {
-                    method: 'PUT',
-                    headers: {'Content-Type': file.type || 'application/octet-stream'},
-                    body: file
-                });
-                loadInbox();
-            }
+            };
 
-            // Deletes a single file from S3 via Lambda then refreshes the list
-            async function deleteFile(filename){
-                if (API.includes('??')) {
-                    setInboxItems(previousItems => previousItems.filter(item => item.name !== filename));
-                    return;
+            const handleFileChange = (event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                    uploadFile(file);
+                    event.target.value = '';
                 }
-                await fetch(`${API}/api/inbox/${encodeURIComponent(filename)}`, {
-                    method: 'DELETE'
-                });
-                loadInbox();
-            }
+            };
 
-            // Selected file tracker
-            let selectedFile = null;
-
-            // Instead of updating indivdual rows in our list,
-            // we will wipe the list and reload it every time the data changes
-            // Normally you would files.map(f => <tr>...</tr>)
-            // This does the same thing manually
-            function renderInbox(files){
-                const tbody = document.querySelector('#inbox-list tbody');
-                if (!tbody) {
-                    return;
-                }
-                tbody.innerHTML = '';
-                console.log('files:', files);
-                files.forEach(filename =>{
-                    const tr = document.createElement('tr');
-                    tr.className = 'group cursor-pointer b-[#3d3d3d] hover:bg-[#ffd700]/10 transition-colors rounded-xl';
-
-                    tr.innerHTML = `
-                        <td class="py-4 px-4 font-bold text-sm">${filename}</td>
-                        <td class="py-4 px-4 text-right">
-                        <button onclick="deleteFile('${filename}') class="text-error-container group-hover:bg-error-container/20 rounded transition-colors p-1">
-                            <span class="material-symbols-outlined text-sm">close</span>
-                        </button>
-                        </td>`;
-
-                    //Click a row, save the filename, highlight it
-                    tr.addEventListener('click', (e) =>{
-                        if(e.target.closest('button')) return; //ignore delete button clicks
-                        selectedFile = filename;               //remember selected file
-                        document.querySelectorAll('#inbox-list tbody tr')
-                            .forEach(row => //clear all highlights
-                                row.classList.remove('ring-2', 'ring-[#ffd700]'));
-                        tr.classList.add('ring-2', 'ring-[#ffd700]'); //highlight the row
-                    })
-
-                    tbody.appendChild(tr);        
-                })
-            }
-            
-            // Upload button
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.style.display='none';
-            document.body.appendChild(fileInput);
-
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files[0]){
-                    uploadFile(fileInput.files[0]);
-                    fileInput.value = '';
-                }
-            });
-
-            // Process button 
-
-            document.getElementById('process-btn').addEventListener('click', async () => {
-                if ( !selectedFile ) return; //do nothing if not selected
-
-                //POST the filename and get back a jobId
-                const res = await fetch(`${API}/api/jobs`,{
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({filename: selectedFile})
-                });
-                const job = await res.json(); // pull jobId out of the response
-                
-                const internal = setInterval(async () =>{
-                    const poll = await fetch(`${API}/api/jobs/${jobId}`); // as the server for the job status
-                    const job = await poll.json();
-
-                    const log = document.getElementById('log-area');
-                    const p = document.createElement('p');
-                    p.textContent = job.message; //print whatever the lambda returns
-                    log.appendChild(p);
-                    log.scrollTop = log.scrollHeight; //scroll to bottom
-
-                    if (job.status === 'SUCCEEDED' || job.status === 'FAILED'){
-                        clearInterval(internal); //stop polling when done
-                        loadRecords(); //refresh the records list to show the new record
-                    }
-                }, 2000);
-            // Init, load the inbox upon page load.
-            loadInbox();
+            const handleLoadRecords = () => loadRecords();
+            const handleClearRecords = () => setRecords([]);
+            const handleDeleteAllRecords = () => {
+                setRecords([]);
+                addLog('Records cleared from view.');
+            };
 
             return (
                 <div className="app-container">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                    />
+
                     <header className="main-header">
                         <div className="header-left">
                             <span className="material-symbols-outlined">terminal</span>
@@ -204,7 +185,6 @@
                     </header>
 
                     <main className="terminal-grid">
-                        {/* Inbox Panel */}
                         <section className="panel">
                             <div className="panel-header">
                                 <h2 className="panel-title">INBOX</h2>
@@ -218,42 +198,66 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {inboxItems.map(item => (
-                                            <tr key={item.id}>
-                                                <td>{item.name}</td>
-                                                <td className="text-right">
-                                                    <button className="icon-btn" onClick={() => deleteInboxItem(item.name)}>
-                                                        <span className="material-symbols-outlined">close</span>
-                                                    </button>
+                                        {inboxItems.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="2" className="py-6 text-center text-[#b0ada6] italic text-sm">
+                                                    No files in inbox.
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ) : (
+                                            inboxItems.map((item) => (
+                                                <tr
+                                                    key={item.id}
+                                                    onClick={() => setSelectedFile(item.name)}
+                                                    style={{
+                                                        outline: selectedFile === item.name ? '2px solid #ffd700' : 'none',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <td>{item.name}</td>
+                                                    <td className="text-right">
+                                                        <button
+                                                            className="icon-btn"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                deleteFile(item.name);
+                                                            }}
+                                                        >
+                                                            <span className="material-symbols-outlined">close</span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
                             <div className="panel-footer">
-                                <button className="primary-btn" id="upload-btn" onClick={handleUpload}>
+                                <button
+                                    className="primary-btn"
+                                    id="upload-btn"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
                                     <span className="material-symbols-outlined">upload_file</span>
                                     UPLOAD FILE
                                 </button>
                             </div>
                         </section>
 
-                        {/* Process Panel */}
                         <section className="panel border-x">
                             <div className="panel-header">
                                 <h2 className="panel-title">PROCESS</h2>
                             </div>
                             <div className="panel-content">
                                 <div className="button-container">
-                                    <button className="outline-btn" id="process-btn" onClick={handleProcess}>
+                                    <button className="outline-btn" id="process-btn" onClick={processSelectedFile}>
                                         EXECUTE_RENDER_PROCESS
                                     </button>
                                 </div>
                                 <div className="console-wrapper">
                                     <div className="console-header">TERMINAL_OUTPUT_V4.1</div>
                                     <div className="console-body scrollable" id="log-area">
-                                        {logs.map(log => (
+                                        {logs.map((log) => (
                                             <p key={log.id} className="log-line">
                                                 <span className="yellow-text">[{log.time}]</span> {log.msg}
                                             </p>
@@ -264,7 +268,6 @@
                             </div>
                         </section>
 
-                        {/* Records Panel */}
                         <section className="panel">
                             <div className="panel-header">
                                 <h2 className="panel-title">RECORDS</h2>
@@ -279,26 +282,40 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {records.map(record => (
-                                            <tr key={record.id}>
-                                                <td>{record.filename}</td>
-                                                <td>
-                                                    <span className={`badge ${record.status === 'FAIL' ? 'badge-error' : 'badge-success'}`}>
-                                                        {record.status}
-                                                    </span>
+                                        {records.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="3" className="py-6 text-center text-[#b0ada6] italic text-sm">
+                                                    No records yet. Process an image to see results.
                                                 </td>
-                                                <td className="text-right dim-text">{record.time}</td>
                                             </tr>
-                                        ))}
+                                        ) : (
+                                            records.map((record) => (
+                                                <tr key={record.id}>
+                                                    <td>{record.filename}</td>
+                                                    <td>
+                                                        <span className={`badge ${record.status === 'FAIL' ? 'badge-error' : 'badge-success'}`}>
+                                                            {record.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-right dim-text">{record.time}</td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
                             <div className="panel-footer footer-actions">
                                 <div className="row">
-                                    <button className="secondary-btn" onClick={handleLoadRecords}>LOAD RECORDS</button>
-                                    <button className="secondary-btn" onClick={handleClearRecords}>CLEAR</button>
+                                    <button className="secondary-btn" onClick={handleLoadRecords}>
+                                        LOAD RECORDS
+                                    </button>
+                                    <button className="secondary-btn" onClick={handleClearRecords}>
+                                        CLEAR
+                                    </button>
                                 </div>
-                                <button className="danger-btn" onClick={handleDeleteAllRecords}>DELETE ALL RECORDS</button>
+                                <button className="danger-btn" onClick={handleDeleteAllRecords}>
+                                    DELETE ALL RECORDS
+                                </button>
                             </div>
                         </section>
                     </main>
@@ -314,62 +331,10 @@
                     </footer>
                 </div>
             );
-        })
+        }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
-        // GET /api/records for the shopping list
-        async function loadRecords(){
-            const res = await fetch(`${API}/api/records`);
-            const data = await res.json();
-            renderRecords(rows);
-        }
-
-        //Wipe records table and repopulate
-        function renderRecords(rows){
-            const tbody = document.querySelector('#records-table tbody');
-            tbody.innerHTML = '';
-
-                if (rows.length === 0){
-                    // Show a message when there are no records
-                    tbody.innerHTML = `
-                    <tr><td colspan="3" class="py-6 text-center text-[#b0ada6] italic text-sm">
-                        No records yet. Process an image to see results.
-                    </td></tr>`;
-                    return;
-                }
-
-                rows.forEach((row, index) => {
-                    const tr = document.createElement('tr');
-                    tr.className = index % 2 === 0 ? 'bg-[#333333]' : 'bg-[#2d2d2d]';
-
-                    const time = row.created_at ? row.created_at.split(' ')[1] || row.created_at : ' ';
-
-                    tr.innerHTML = `
-                        <td class="py-4 px-4 font-bold text-sm">${row.item}</td>
-                        <td class="py-4 px-2">
-                            <span class="bg-[#536200] text-[#e5ff76] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                        Saved</span>
-                        </td>
-                        <td class="py-4 px-2 text-right text-[#b0ada6] tabular-nums">${time}
-                            <button onclick="deleteRecord('${row.id}')"
-                                class="ml-3 text-[#b0ada6] hover:text-white hover:scale-125 transition-transform align-middle">
-                                <span class="material-symbols-outlined text-base">close</span>
-                            </button>
-                        </td>`;
-                        tbody.appendChild(tr);
-
-                    })
-            }
-        }     
-
-        async function deleteRecord(id){
-            await fetch(`${API}/api/records/${id}`, 
-            { method: 'DELETE' });
-            loadRecords();
-        }
-        loadRecords();
     </script>
 <style>
         /* BASE STYLES */

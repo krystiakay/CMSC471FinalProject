@@ -46,4 +46,5 @@ def delete_record(record_id):
     return {
         'statusCode': 200,
         'headers': {'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'deleted': record_id})
     }

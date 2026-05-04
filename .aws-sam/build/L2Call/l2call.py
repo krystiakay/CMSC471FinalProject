@@ -3,7 +3,7 @@ import os
 import boto3
 
 textract = boto3.client('textract')
-dynamodb = boto3.resources('dynamodb')
+dynamodb = boto3.resource('dynamodb')
 
 
 def handler(event, context):

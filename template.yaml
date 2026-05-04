@@ -1,3 +1,4 @@
+#template.yaml
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   LabRoleArn:
@@ -14,6 +15,7 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
+  # This function will use the front end to verify the API is up and running, and to test connectivity to other resources like S3
   HealthFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -42,6 +44,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${HealthFunction}
       RetentionInDays: 7
+  #This is the s3 bucket that holds information on the front end like the index.html file
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -71,6 +74,7 @@ Resources:
             Condition:
               Bool:
                 aws:SecureTransport: 'false'
+  #This function will be used to access the index.html file in the s3 bucket, and to verify connectivity from the lambda function to the s3 bucket 
   StaticProxyFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -102,6 +106,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${StaticProxyFunction}
       RetentionInDays: 7
+  # This is the s3 bucket that will hold images uploaded by the user
   InboxBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -142,6 +147,7 @@ Resources:
             Condition:
               Bool:
                 aws:SecureTransport: 'false'
+  # This function is used to handle API calls to the /api/inbox endpoint, and to interact with the inbox s3 bucket to upload, delete, and list images
   LInbox:
     Type: AWS::Serverless::Function
     Properties:
@@ -184,6 +190,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LInbox}
       RetentionInDays: 7
+  # This function is used to submit jobs to the state machine from the Inbox s3 bucket
   lsubmit:
     Type: AWS::Serverless::Function
     Properties:
@@ -227,6 +234,7 @@ Resources:
       KeySchema:
         - AttributeName: jobId
           KeyType: HASH
+  # This function fetches images from the Inbox s3 bucket
   L1Fetch:
     Type: AWS::Serverless::Function
     Properties:
@@ -278,6 +286,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${L1Fetch}
       RetentionInDays: 7
+  # This function is used to call on the images fetched by L1Fetch 
   L2Call:
     Type: AWS::Serverless::Function
     Properties:
@@ -305,6 +314,8 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${L2Call}
       RetentionInDays: 7
+  
+  # This function is used to save the results of the image processing to the records table 
   L3Save:
     Type: AWS::Serverless::Function
     Properties:
@@ -330,6 +341,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${L3Save}
       RetentionInDays: 7
+  # This is the state machine that is comprised of L1Fetch, L2Call, and L3Save, and is responsible for the image processing workflow
   StateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -389,6 +401,8 @@ Resources:
       LogGroupName: !Sub
         - /aws/vendedlogs/states/${AWS::StackName}-${ResourceId}-Logs
         - ResourceId: StateMachine
+  
+  # This function is used to poll for the status of a job and return the results to the front end
   LPoll:
     Type: AWS::Serverless::Function
     Properties:
@@ -420,6 +434,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LPoll}
       RetentionInDays: 7
+  # This function fetches the results of image processing from the records table and returns them to the front end
   LRecords:
     Type: AWS::Serverless::Function
     Properties:
@@ -451,6 +466,7 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LRecords}
       RetentionInDays: 7
+  # This is the table that holds the results of the image processing, and works with the L3Save and LRecords functions to save and retrieve the results of the image processing
   RecordsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -461,7 +477,7 @@ Resources:
       KeySchema:
         - AttributeName: id
           KeyType: HASH
-
+# This defines the stack outputs
 Outputs:
   HelloWorldApi:
     Description: 'API Gateway endpoing URL for Prod:'

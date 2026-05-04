@@ -14,7 +14,7 @@ def handler(event, context):
     items = event['items']
    
 
-    records_table = dynamodb.Table(os.environ['JOB_TABLE'])
+    records_table = dynamodb.Table(os.environ['RECORDS_TABLE'])
     for item in items:
         records_table.put_item(Item={
                 'id': str(uuid.uuid4()),
