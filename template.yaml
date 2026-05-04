@@ -1,6 +1,7 @@
 #yaml file
 Transform: AWS::Serverless-2016-10-31
 
+
 Resources:
   Api:
     Type: AWS::Serverless::Api
@@ -282,6 +283,8 @@ Resources:
       Environment: 
         Variables:
           JOB_TABLE: !Ref JobsTable
+          DB_NAME: shoppinglist
+          RECORDS_TABLE: !Ref RecordsTable
   L3SaveLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -365,6 +368,7 @@ Resources:
       Environment:
         Variables:
           JOB_TABLE: !Ref JobsTable
+          
       Events:
         ApiGETPoll:
         Type: Api
@@ -379,8 +383,30 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LPoll}
       RetentionInDays: 7
-
-
+  LRecords:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: LRecords
+      CodeUri: src/lrecords
+      Handler: lrecords.handler
+      Runtime: python3.13
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          # DB_NAME: shoppinglist
+          RECORDS_TABLE: !Ref RecordsTable
+      Events:
+        ApiGETRecords:
+          Type: Api
+          Properties:
+            Path: /api/records
+            Method: GET
+            RestApiId: !Ref Api
 Outputs:
   HelloWorldApi:
     Description: 'API Gateway endpoing URL for Prod:'
