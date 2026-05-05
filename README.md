@@ -74,6 +74,20 @@ graph TD
 5. As a user, I want to be able to process and render my files with a button.
 
 ## Well-Architected Questions
+1. How does the system support operational excellence?
+Amaya: The system supports operational excellence because CloudFront maintains logs of all system activity, which can be used to learn from failures.  
+
+2. How does the system adhere to the performance efficiency pillar?
+Amaya: It adheres to performance efficiency because it uses serverless lambda functions to perform operations rather than using an EC2 instance which keeps costs low.
+
+3. How does the system support cost optimization?
+Amaya: By using lambda functions, operational costs are kept low because we are only charged a small fee when the functions are invoked. 
+
+4. How could the reliability pillar be improved?
+Amaya: We could have the data stored in the S3 buckets be automatically replicated in 3 availability zones.
+
+5. How is security supported in this system?
+Amaya: Security is supported because CloudFront can be used to monitor for abnormal usage and S3 automatically encrypts data stored in buckets.
 
 ## Cost Calculator
 The estimate given by https://calculator.aws was $180 upfront and $30.32 per month, coming to $543.84 (including upfront cost) for 12 months. The services entered were all using the us-east-1 region, and were: Amazon API Gateway -  1 million REST API requests per month for $3.50, AWS Lambda - 8 requests per hour with 3008 MB allocated for $0.00 per month, Simple Storage Service (S3) - 5 GB and 1000 GET/PUT/etc per month for $0.12, AWS Step Functions - 1 standard workflow request per hour with 5 state transitions per workflow for $0.00 per month, Textract - 1 page with 50% text and 50% tables and queries for $0.01 per month, CloudWatch - 1 metric for $0.30 per month, DynamoDB - 1 GB of data storage size for 1 KB each item for an upfront cost of $180 and a monthly cost of $26.39. 
