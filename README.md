@@ -37,7 +37,13 @@ graph TD
     L3 -.-> DDB
     
     CW[CloudWatch] -.-> SF
+
+
 ```
+## Trusted Advisor Recommendation
+<img width="960" height="413" alt="image" src="https://github.com/user-attachments/assets/a07332b4-af36-437f-b960-3f35cf7764af" />
+
+
 ## DevOps Board
 <img width="1201" height="445" alt="Screenshot 2026-05-04 182346" src="https://github.com/user-attachments/assets/7beae023-4230-4d02-90b7-eba876957d0b" />
 <img width="1190" height="791" alt="Screenshot 2026-05-04 213631" src="https://github.com/user-attachments/assets/5239d5c4-33db-49d3-b465-040e2302b08b" />
