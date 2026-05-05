@@ -40,6 +40,9 @@ graph TD
 
 
 ```
+## Security Compliance
+We can create user groups that only allow the root user to access and modify S3 buckets. To protect data the S3 buckets and DynamoDB are automatically encrypted to prevent unauthorized access to user data. To restrict access to the API Gateway we can create rules that only allow certain IP addresses to send inbound traffic. To portect step functions, we can create IAM identity based policies to only allow the root user to access and modify the functions. For disaster recovery we could replicate the website across multiple availability zones. We could also periodically backup data in long term AWS storage such as S3 Glacier. 
+
 ## Trusted Advisor Recommendation
 <img width="960" height="413" alt="image" src="https://github.com/user-attachments/assets/a07332b4-af36-437f-b960-3f35cf7764af" />
 
